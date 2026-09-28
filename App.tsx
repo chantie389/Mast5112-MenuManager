@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,388 +13,570 @@ import { Picker } from '@react-native-picker/picker';
 
 type Course = 'Starter' | 'Main Course' | 'Dessert';
 
-type MenuItem = {
+interface MenuItem {
   id: string;
   dishName: string;
   description: string;
   course: Course;
   price: string;
-};
+}
+
+// Generate unique ID
+const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
 
 export default function App() {
-  const [screen, setScreen] = useState('home');
+  const [screen, setScreen] = useState<'home' | 'add' | 'edit' | 'view' | 'stats'>('home');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
+  // Form fields
   const [dishName, setDishName] = useState('');
   const [description, setDescription] = useState('');
   const [course, setCourse] = useState<Course>('Main Course');
   const [price, setPrice] = useState('');
 
-  const saveMenuItem = () => {
+  // Search & Filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCourse, setFilterCourse] = useState<Course | ''>('');
+
+  // ===== Filtered & Sorted Items =====
+  const displayedItems = useMemo(() => {
+    let items = [...menuItems];
+    if (searchQuery.trim()) {
+      items = items.filter(item =>
+        item.dishName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    if (filterCourse) {
+      items = items.filter(item => item.course === filterCourse);
+    }
+    return items;
+  }, [menuItems, searchQuery, filterCourse]);
+
+  // ===== Statistics =====
+  const stats = useMemo(() => {
+    const starters = menuItems.filter(i => i.course === 'Starter');
+    const mains = menuItems.filter(i => i.course === 'Main Course');
+    const desserts = menuItems.filter(i => i.course === 'Dessert');
+
+    const avgPrice = (items: MenuItem[]) => {
+      if (items.length === 0) return '0.00';
+      const total = items.reduce((sum, i) => sum + parseFloat(i.price), 0);
+      return (total / items.length).toFixed(2);
+    };
+
+    return {
+      total: menuItems.length,
+      starters: { count: starters.length, avgPrice: avgPrice(starters) },
+      mains: { count: mains.length, avgPrice: avgPrice(mains) },
+      desserts: { count: desserts.length, avgPrice: avgPrice(desserts) },
+    };
+  }, [menuItems]);
+
+  // ===== Validation =====
+  const validateForm = () => {
     if (!dishName.trim()) {
       Alert.alert('Error', 'Please enter a dish name.');
-      return;
+      return false;
     }
-    if (!price.trim()) {
-      Alert.alert('Error', 'Please enter a price.');
-      return;
+    if (!description.trim()) {
+      Alert.alert('Error', 'Please enter a description.');
+      return false;
     }
-    if (isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
+    if (!price.trim() || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
       Alert.alert('Error', 'Please enter a valid positive price.');
-      return;
+      return false;
     }
+    return true;
+  };
 
-    const newItem = {
-      id: Date.now().toString(),
+  // ===== Add New Item =====
+  const saveNewItem = () => {
+    if (!validateForm()) return;
+
+    const newItem: MenuItem = {
+      id: generateId(),
       dishName: dishName.trim(),
-      description: description.trim() || 'No description provided.',
+      description: description.trim(),
       course,
       price: parseFloat(price).toFixed(2),
     };
 
-    setMenuItems([...menuItems, newItem]);
-
-    Alert.alert('Success', `${dishName} has been added to the menu!`);
-
-    setDishName('');
-    setDescription('');
-    setCourse('Main Course');
-    setPrice('');
+    setMenuItems(prev => [...prev, newItem]);
+    clearForm();
+    Alert.alert('Success', 'Menu item added!');
   };
 
-  const cancelForm = () => {
+  // ===== Load Item for Editing =====
+  const startEditing = (item: MenuItem) => {
+    setEditingItem(item);
+    setDishName(item.dishName);
+    setDescription(item.description);
+    setCourse(item.course);
+    setPrice(item.price);
+    setScreen('edit');
+  };
+
+  // ===== Update Existing Item =====
+  const updateItem = () => {
+    if (!editingItem || !validateForm()) return;
+
+    setMenuItems(prev =>
+      prev.map(item =>
+        item.id === editingItem.id
+          ? {
+              ...item,
+              dishName: dishName.trim(),
+              description: description.trim(),
+              course,
+              price: parseFloat(price).toFixed(2),
+            }
+          : item
+      )
+    );
+
+    clearForm();
+    Alert.alert('Success', 'Menu item updated!');
+  };
+
+  // ===== Delete Item =====
+  const deleteItem = (id: string) => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this item?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setMenuItems(prev => prev.filter(item => item.id !== id));
+            if (editingItem?.id === id) {
+              clearForm();
+            }
+            Alert.alert('Deleted', 'Item removed from menu.');
+          },
+        },
+      ]
+    );
+  };
+
+  // ===== Reset Form =====
+  const clearForm = () => {
     setDishName('');
     setDescription('');
     setCourse('Main Course');
     setPrice('');
+    setEditingItem(null);
+    setSearchQuery('');
+    setFilterCourse('');
     setScreen('home');
   };
 
-  const renderItem = ({ item }: { item: MenuItem }) => (
-    <View style={styles.itemCard}>
-      <Text style={styles.itemName}>{item.dishName}</Text>
-      <Text style={styles.itemCourse}>{item.course}</Text>
-      <Text style={styles.itemDesc}>{item.description}</Text>
-      <Text style={styles.itemPrice}>R{item.price}</Text>
-    </View>
-  );
+  // ===== Clear Search/Filter =====
+  const clearSearchAndFilter = () => {
+    setSearchQuery('');
+    setFilterCourse('');
+  };
 
-  const renderHome = () => (
-    <View style={styles.screenContainer}>
-      <Text style={styles.appTitle}>Menu Manager</Text>
-      <Text style={styles.welcome}>Welcome!</Text>
-      <Text style={styles.subtitle}>Manage and view restaurant menu items.</Text>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => setScreen('add')}
-        >
-          <Text style={styles.primaryButtonText}>ADD MENU ITEM</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => setScreen('view')}
-        >
-          <Text style={styles.secondaryButtonText}>VIEW MENU</Text>
-        </TouchableOpacity>
+  // ===== Reusable Component: Menu Item Card =====
+  const MenuItemCard = ({ item, showActions = false }: { item: MenuItem; showActions?: boolean }) => (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>{item.dishName}</Text>
+      <Text style={styles.cardDesc}>{item.description}</Text>
+      <View style={styles.cardRow}>
+        <Text style={styles.cardCourse}>{item.course}</Text>
+        <Text style={styles.cardPrice}>R{item.price}</Text>
       </View>
-
-      <View style={styles.infoBox}>
-        <Text style={styles.infoTitle}>Users</Text>
-        <Text style={styles.infoText}>Christopher – Restaurant Owner</Text>
-        <Text style={styles.infoText}>Chef – Manages Menu</Text>
-        <Text style={styles.infoText}>Waiter – Views Menu</Text>
-        <Text style={styles.infoText}>Cashier – Views Menu & Prices</Text>
-      </View>
-    </View>
-  );
-
-  const renderAddItem = () => (
-    <ScrollView contentContainerStyle={styles.screenContainer}>
-      <Text style={styles.screenTitle}>Add Menu Item</Text>
-
-      <Text style={styles.label}>Dish Name *</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter dish name"
-        value={dishName}
-        onChangeText={setDishName}
-      />
-
-      <Text style={styles.label}>Description</Text>
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        placeholder="Enter description of the dish..."
-        value={description}
-        onChangeText={setDescription}
-        multiline
-      />
-
-      <Text style={styles.label}>Course *</Text>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={course}
-          onValueChange={(value: Course) => setCourse(value)}
-          style={styles.picker}
-        >
-          <Picker.Item label="Starter" value="Starter" />
-          <Picker.Item label="Main Course" value="Main Course" />
-          <Picker.Item label="Dessert" value="Dessert" />
-        </Picker>
-      </View>
-
-      <Text style={styles.label}>Price (R) *</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter price"
-        value={price}
-        onChangeText={setPrice}
-        keyboardType="numeric"
-      />
-
-      <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.saveButton} onPress={saveMenuItem}>
-          <Text style={styles.saveButtonText}>SAVE MENU ITEM</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.cancelButton} onPress={cancelForm}>
-          <Text style={styles.cancelButtonText}>CANCEL</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  );
-
-  const renderViewItems = () => (
-    <View style={styles.screenContainer}>
-      <Text style={styles.screenTitle}>Menu Items</Text>
-
-      {menuItems.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No menu items have been added yet.</Text>
-          <Text style={styles.emptySubtext}>Tap "Add Menu Item" to get started.</Text>
+      {showActions && (
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.editBtn} onPress={() => startEditing(item)}>
+            <Text style={styles.btnText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteItem(item.id)}>
+            <Text style={styles.btnText}>Delete</Text>
+          </TouchableOpacity>
         </View>
-      ) : (
-        <FlatList
-          data={menuItems}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          style={styles.list}
-        />
       )}
-
-      <TouchableOpacity style={styles.backButton} onPress={() => setScreen('home')}>
-        <Text style={styles.backButtonText}>← Back to Home</Text>
-      </TouchableOpacity>
     </View>
   );
 
-  return (
-    <View style={styles.appContainer}>
-      {screen === 'home' && renderHome()}
-      {screen === 'add' && renderAddItem()}
-      {screen === 'view' && renderViewItems()}
-    </View>
-  );
+  // ===== NAVIGATION: Home Screen =====
+  if (screen === 'home') {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.heading}>Chef's Menu Manager</Text>
+        <Text style={styles.subheading}>Total Items: {menuItems.length}</Text>
+
+        <View style={styles.navButtons}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => setScreen('add')}>
+            <Text style={styles.primaryBtnText}>Add New Dish</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => setScreen('view')}>
+            <Text style={styles.secondaryBtnText}> View & Manage Menu</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => setScreen('stats')}>
+            <Text style={styles.secondaryBtnText}> Menu Statistics</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // ===== NAVIGATION: Add Screen =====
+  if (screen === 'add') {
+    return (
+      <ScrollView style={styles.container}>
+        <Text style={styles.heading}>Add New Menu Item</Text>
+
+        <Text style={styles.label}>Dish Name *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. Grilled Salmon"
+          value={dishName}
+          onChangeText={setDishName}
+        />
+
+        <Text style={styles.label}>Description *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Brief description of the dish"
+          value={description}
+          onChangeText={setDescription}
+        />
+
+        <Text style={styles.label}>Course *</Text>
+        <View style={styles.pickerContainer}>
+          <Picker selectedValue={course} onValueChange={setCourse}>
+            <Picker.Item label="Starter" value="Starter" />
+            <Picker.Item label="Main Course" value="Main Course" />
+            <Picker.Item label="Dessert" value="Dessert" />
+          </Picker>
+        </View>
+
+        <Text style={styles.label}>Price (R) *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. 85.00"
+          value={price}
+          onChangeText={setPrice}
+          keyboardType="decimal-pad"
+        />
+
+        <TouchableOpacity style={styles.primaryBtn} onPress={saveNewItem}>
+          <Text style={styles.primaryBtnText}>Save Menu Item</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.cancelBtn} onPress={clearForm}>
+          <Text style={styles.cancelBtnText}>← Back to Home</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  }
+
+  // ===== NAVIGATION: Edit Screen =====
+  if (screen === 'edit') {
+    return (
+      <ScrollView style={styles.container}>
+        <Text style={styles.heading}>Edit Menu Item</Text>
+
+        <Text style={styles.label}>Dish Name *</Text>
+        <TextInput style={styles.input} value={dishName} onChangeText={setDishName} />
+
+        <Text style={styles.label}>Description *</Text>
+        <TextInput style={styles.input} value={description} onChangeText={setDescription} />
+
+        <Text style={styles.label}>Course *</Text>
+        <View style={styles.pickerContainer}>
+          <Picker selectedValue={course} onValueChange={setCourse}>
+            <Picker.Item label="Starter" value="Starter" />
+            <Picker.Item label="Main Course" value="Main Course" />
+            <Picker.Item label="Dessert" value="Dessert" />
+          </Picker>
+        </View>
+
+        <Text style={styles.label}>Price (R) *</Text>
+        <TextInput
+          style={styles.input}
+          value={price}
+          onChangeText={setPrice}
+          keyboardType="decimal-pad"
+        />
+
+        <TouchableOpacity style={styles.primaryBtn} onPress={updateItem}>
+          <Text style={styles.primaryBtnText}>Update Item</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.cancelBtn} onPress={clearForm}>
+          <Text style={styles.cancelBtnText}>Cancel</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  }
+
+  // ===== NAVIGATION: View/Search/Filter Screen =====
+  if (screen === 'view') {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.heading}>Menu Items</Text>
+
+        {/* Search */}
+        <TextInput
+          style={styles.input}
+          placeholder="🔍 Search by dish name..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+
+        {/* Filter by Course */}
+        <Text style={styles.label}>Filter by Course:</Text>
+        <View style={styles.pickerContainer}>
+          <Picker selectedValue={filterCourse} onValueChange={setFilterCourse}>
+            <Picker.Item label="All Courses" value="" />
+            <Picker.Item label="Starter" value="Starter" />
+            <Picker.Item label="Main Course" value="Main Course" />
+            <Picker.Item label="Dessert" value="Dessert" />
+          </Picker>
+        </View>
+
+        {/* Clear Search & Filter */}
+        {(searchQuery || filterCourse) && (
+          <TouchableOpacity style={styles.clearBtn} onPress={clearSearchAndFilter}>
+            <Text style={styles.clearBtnText}>✕ Clear Search & Filter</Text>
+          </TouchableOpacity>
+        )}
+
+        <Text style={styles.resultCount}>Showing {displayedItems.length} of {menuItems.length} items</Text>
+
+        <FlatList
+          data={displayedItems}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => <MenuItemCard item={item} showActions />}
+          contentContainerStyle={styles.listContent}
+        />
+
+        <TouchableOpacity style={styles.cancelBtn} onPress={clearForm}>
+          <Text style={styles.cancelBtnText}>← Back to Home</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // ===== NAVIGATION: Statistics Screen =====
+  if (screen === 'stats') {
+    return (
+      <ScrollView style={styles.container}>
+        <Text style={styles.heading}>📊 Menu Statistics</Text>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Total Menu Items</Text>
+          <Text style={styles.statValueLarge}>{stats.total}</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Starters</Text>
+          <Text style={styles.statValue}>{stats.starters.count} item(s)</Text>
+          <Text style={styles.statAvg}>Avg Price: R{stats.starters.avgPrice}</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Main Courses</Text>
+          <Text style={styles.statValue}>{stats.mains.count} item(s)</Text>
+          <Text style={styles.statAvg}>Avg Price: R{stats.mains.avgPrice}</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Desserts</Text>
+          <Text style={styles.statValue}>{stats.desserts.count} item(s)</Text>
+          <Text style={styles.statAvg}>Avg Price: R{stats.desserts.avgPrice}</Text>
+        </View>
+
+        <TouchableOpacity style={styles.cancelBtn} onPress={clearForm}>
+          <Text style={styles.cancelBtnText}>← Back to Home</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  }
+
+  return null;
 }
 
+// ===== STYLES =====
 const styles = StyleSheet.create({
-  appContainer: {
+  container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
     padding: 20,
   },
-  screenContainer: {
-    flexGrow: 1,
-    paddingBottom: 30,
-  },
-  appTitle: {
-    fontSize: 28,
+  heading: {
+    fontSize: 26,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 5,
-    color: '#2d3748',
+    color: '#333',
   },
-  welcome: {
-    fontSize: 20,
+  subheading: {
+    fontSize: 16,
     textAlign: 'center',
-    color: '#2d3748',
-    marginTop: 10,
-  },
-  subtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    color: '#718096',
     marginBottom: 30,
-  },
-  screenTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 25,
-    color: '#2d3748',
-  },
-  buttonContainer: {
-    gap: 15,
-    marginBottom: 30,
-  },
-  primaryButton: {
-    backgroundColor: '#4a5568',
-    paddingVertical: 18,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: '#e2e8f0',
-    paddingVertical: 18,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#2d3748',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  infoBox: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#2d3748',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#4a5568',
-    marginBottom: 5,
+    color: '#666',
   },
   label: {
     fontSize: 15,
     fontWeight: '600',
     marginTop: 15,
-    marginBottom: 6,
-    color: '#2d3748',
+    marginBottom: 5,
+    color: '#444',
   },
   input: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#cbd5e0',
-    borderRadius: 8,
+    borderColor: '#ddd',
+    borderRadius: 10,
     padding: 12,
     fontSize: 15,
-    color: '#2d3748',
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
   },
   pickerContainer: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#cbd5e0',
-    borderRadius: 8,
-    marginBottom: 5,
+    borderColor: '#ddd',
+    borderRadius: 10,
   },
-  picker: {
-    height: 50,
+  navButtons: {
+    gap: 15,
+    marginTop: 10,
   },
-  buttonRow: {
-    marginTop: 25,
-    gap: 12,
-  },
-  saveButton: {
-    backgroundColor: '#2f855a',
-    paddingVertical: 15,
-    borderRadius: 8,
+  primaryBtn: {
+    backgroundColor: '#2e8b57',
+    borderRadius: 12,
+    padding: 15,
     alignItems: 'center',
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    backgroundColor: '#e53e3e',
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  backButton: {
     marginTop: 20,
-    paddingVertical: 12,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 8,
+  },
+  primaryBtnText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+  secondaryBtn: {
+    backgroundColor: '#4a90e2',
+    borderRadius: 12,
+    padding: 15,
     alignItems: 'center',
   },
-  backButtonText: {
-    color: '#2d3748',
+  secondaryBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelBtn: {
+    marginTop: 20,
+    padding: 12,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    color: '#666',
     fontSize: 15,
-    fontWeight: '500',
   },
-  list: {
-    flex: 1,
-  },
-  itemCard: {
-    backgroundColor: '#fff',
-    padding: 18,
-    marginBottom: 12,
+  clearBtn: {
+    backgroundColor: '#e8e8e8',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+    padding: 8,
+    alignItems: 'center',
+    marginTop: 10,
   },
-  itemName: {
+  clearBtnText: {
+    color: '#555',
+    fontWeight: '600',
+  },
+  resultCount: {
+    textAlign: 'right',
+    color: '#777',
+    marginVertical: 10,
+  },
+  listContent: {
+    gap: 12,
+    paddingBottom: 20,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2e8b57',
+  },
+  cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2d3748',
-    marginBottom: 4,
+    color: '#222',
   },
-  itemCourse: {
-    fontSize: 13,
-    color: '#4299e1',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  itemDesc: {
+  cardDesc: {
     fontSize: 14,
-    color: '#718096',
-    marginBottom: 8,
+    color: '#666',
+    marginTop: 4,
   },
-  itemPrice: {
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  cardCourse: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: '#555',
+  },
+  cardPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2e8b57',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  editBtn: {
+    backgroundColor: '#ff9500',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
+  deleteBtn: {
+    backgroundColor: '#ff3b30',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+  },
+  btnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  statCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 12,
+  },
+  statLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2f855a',
+    color: '#444',
   },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
+  statValueLarge: {
+    fontSize: 42,
+    fontWeight: 'bold',
+    color: '#2e8b57',
+    marginTop: 5,
   },
-  emptyText: {
-    fontSize: 18,
-    color: '#718096',
-    textAlign: 'center',
+  statValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 5,
   },
-  emptySubtext: {
+  statAvg: {
     fontSize: 14,
-    color: '#a0aec0',
-    marginTop: 8,
-    textAlign: 'center',
+    color: '#666',
+    marginTop: 5,
   },
 });
