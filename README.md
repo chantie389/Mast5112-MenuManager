@@ -1,7 +1,7 @@
 # MAST5112 — Chef's Menu Manager (Final POE Submission)
 
 ##  Project Overview
-This is the final version of the Chef's Menu Manager — a React Native mobile application for restaurant staff to create, manage, and view menu items.
+This is the final version of the Chef's Menu Manager, a React Native mobile application for restaurant staff to create, manage, and view menu items.
 
 ---
 
@@ -12,7 +12,7 @@ This is the final version of the Chef's Menu Manager — a React Native mobile a
 - **Delete items:** Remove items from the menu with a confirmation prompt to prevent accidental deletion. Changes reflect immediately.
 
 ### 2. Search & Filter Functionality
-- **Search:** Find menu items by typing any part of the dish name — results update in real time.
+- **Search:** Find menu items by typing any part of the dish name, results update in real time.
 - **Filter:** Filter the menu to show only Starters, only Main Courses, or only Desserts.
 - **Clear controls:** One button to clear search and filter and show the full menu again.
 
@@ -33,13 +33,13 @@ Displays useful information at a glance:
 - Buttons and form fields aligned uniformly for a cleaner look
 
 ### 2. Code Quality Improvements
-- **Created reusable `MenuItemCard` component** — instead of repeating the same code for every item, we now use one component that's reused everywhere. This makes the code shorter, easier to read, and easier to update later.
-- **Improved naming conventions** — variables and functions now use clear, meaningful names that describe exactly what they do
-- **Used `useMemo` hook** for filtering and statistics calculations — improves performance by only recalculating when data actually changes
-- **Consistent styling** — colours, fonts, and spacing follow the same design across all screens
+- **Created reusable `MenuItemCard` component**  instead of repeating the same code for every item, we now use one component that's reused everywhere. This makes the code shorter, easier to read, and easier to update later.
+- **Improved naming conventions**  variables and functions now use clear, meaningful names that describe exactly what they do
+- **Used `useMemo` hook** for filtering and statistics calculations, improves performance by only recalculating when data actually changes
+- **Consistent styling**  colours, fonts, and spacing follow the same design across all screens
 
 ### 3. Validation & User Experience
-- Added comprehensive form validation — helpful error messages guide the user if they miss a field or enter an invalid price
+- Added comprehensive form validation, helpful error messages guide the user if they miss a field or enter an invalid price
 - Confirmation prompts before deleting items
 - Success messages when items are saved or updated
 - Clear navigation labels and consistent button placement
