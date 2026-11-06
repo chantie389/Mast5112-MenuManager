@@ -323,7 +323,7 @@ export default function App() {
         {/* Search */}
         <TextInput
           style={styles.input}
-          placeholder="🔍 Search by dish name..."
+          placeholder="Search by dish name..."
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -366,7 +366,7 @@ export default function App() {
   if (screen === 'stats') {
     return (
       <ScrollView style={styles.container}>
-        <Text style={styles.heading}>📊 Menu Statistics</Text>
+        <Text style={styles.heading}>Menu Statistics</Text>
 
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Total Menu Items</Text>
@@ -407,6 +407,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
     padding: 20,
+    paddingTop: 40,
   },
   heading: {
     fontSize: 26,
