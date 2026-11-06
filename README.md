@@ -1,7 +1,5 @@
 # MAST5112 — Chef's Menu Manager (Final POE Submission)
 
----
-
 ##  Project Overview
 This is the final version of the Chef's Menu Manager — a React Native mobile application for restaurant staff to create, manage, and view menu items.
 
