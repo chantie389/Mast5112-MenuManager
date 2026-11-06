@@ -1,55 +1,71 @@
-# Mast5112 - Chef's Menu Manager (POE Part 3)
+# MAST5112 — Chef's Menu Manager (Final POE Submission)
 
-## Student Information
-- **Name:** LIBISI CHANTELL
-- **Student Number:** ST10534598
+---
 
-## Overview
-A React Native mobile application for managing a restaurant menu built as the final POE submission.
+##  Project Overview
+This is the final version of the Chef's Menu Manager — a React Native mobile application for restaurant staff to create, manage, and view menu items.
 
-## Features Implemented
+---
 
-### 1. Manage Menu Items 
-- Add new menu items
-- Edit existing items  updates immediately
-- Delete items  with confirmation prompt
-- All changes reflect instantly in the application
+##  NEW FEATURES — Changes Implemented Since Part 2
 
-### 2. Search & Filter 
-- Search menu items by dish name (real-time)
-- Filter items by course: Starter / Main Course / Dessert
-- Clear search and filter with one button
-- Result count updates dynamically
+### 1. Manage Menu Items
+- **Edit existing items:** Can now modify dish name, description, course, and price. Changes update instantly in the list.
+- **Delete items:** Remove items from the menu with a confirmation prompt to prevent accidental deletion. Changes reflect immediately.
 
-### 3. Menu Statistics 
+### 2. Search & Filter Functionality
+- **Search:** Find menu items by typing any part of the dish name — results update in real time.
+- **Filter:** Filter the menu to show only Starters, only Main Courses, or only Desserts.
+- **Clear controls:** One button to clear search and filter and show the full menu again.
+
+### 3. Menu Statistics Screen
+Displays useful information at a glance:
 - Total number of menu items
-- Item count per course
+- Number of items per course (Starters / Main Courses / Desserts)
 - Average price per course
-- Presented in a clear, visual format
+- Automatically updates as items are added, edited, or removed
 
-### 4. Enhancements 
-- Reusable component (`MenuItemCard`) reduces code duplication
-- Consistent styling across all screens
-- Comprehensive form validation
-- Meaningful naming conventions
-- Responsive, user-friendly interface
+---
 
-## Changes Since Part 2
-- Added Edit functionality
-- Added Delete functionality with confirmation
-- Implemented search by dish name
-- Implemented course filtering
-- Added Statistics screen with calculations
-- Created reusable MenuItemCard component
-- Improved navigation and screen layout
-- Enhanced validation and user feedback
-- Consistent colour scheme and button styling
+##  REFACTORING & IMPROVEMENTS
 
-## How to Run
-1. Clone or download the repository
-2. Run `npm install`
+### 1. Layout & UI Improvements
+- **Fixed header/title positioning:** Added top padding so the screen title ("Add New Menu Item", etc.) is no longer cut off or positioned too close to the top of the screen. Content now displays clearly and is fully visible without needing to scroll or drag down.
+- Consistent spacing and padding applied across all screens
+- Buttons and form fields aligned uniformly for a cleaner look
+
+### 2. Code Quality Improvements
+- **Created reusable `MenuItemCard` component** — instead of repeating the same code for every item, we now use one component that's reused everywhere. This makes the code shorter, easier to read, and easier to update later.
+- **Improved naming conventions** — variables and functions now use clear, meaningful names that describe exactly what they do
+- **Used `useMemo` hook** for filtering and statistics calculations — improves performance by only recalculating when data actually changes
+- **Consistent styling** — colours, fonts, and spacing follow the same design across all screens
+
+### 3. Validation & User Experience
+- Added comprehensive form validation — helpful error messages guide the user if they miss a field or enter an invalid price
+- Confirmation prompts before deleting items
+- Success messages when items are saved or updated
+- Clear navigation labels and consistent button placement
+
+---
+
+##  How to Run
+1. Clone or download this repository
+2. Run `npm install` to install dependencies
 3. Run `npx expo start`
-4. Open on Android emulator, iOS simulator, or Expo Go app
+4. Open the app using Expo Go on your mobile device or an emulator
+
+---
+
+##  Summary
+| Area | Completed |
+|---|---|
+| Edit & Delete functionality | ✅ |
+| Search & Filter | ✅ |
+| Statistics Screen | ✅ |
+| Layout / UI improvements (header positioning fixed) | ✅ |
+| Code refactoring (reusable components) | ✅ |
+| Form validation & UX enhancements | ✅ |
+| Demo video recorded & accessible | ✅ |
 
 ## REFERENCES
 
